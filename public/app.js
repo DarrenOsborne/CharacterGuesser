@@ -16,6 +16,7 @@ let drawing = false;
 let model = null;
 let outputStr = '';
 let submitTimer = null;
+let strokeDrawn = false; // true only if the last stroke had movement
 
 function getPos(e) {
   const rect = canvas.getBoundingClientRect();
@@ -31,6 +32,7 @@ function startDraw(e) {
     clearTimeout(submitTimer);
     submitTimer = null;
   }
+  strokeDrawn = false;
   const { x, y } = getPos(e);
   ctx.beginPath();
   ctx.moveTo(x, y);
@@ -41,12 +43,14 @@ function draw(e) {
   const { x, y } = getPos(e);
   ctx.lineTo(x, y);
   ctx.stroke();
+  strokeDrawn = true;
 }
 
 function endDraw() {
   drawing = false;
   ctx.closePath();
   // start inactivity timer for auto-submit
+  if (!strokeDrawn) return; // ignore simple clicks without drawing
   if (submitTimer) clearTimeout(submitTimer);
   submitTimer = setTimeout(() => {
     predictAndHandle({ append: true, clearAfter: true });
