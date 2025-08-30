@@ -1,6 +1,7 @@
 const CANVAS_SIZE = 280;
 const STROKE_COLOR = '#ffffff'; // white stroke on black background like MNIST
 const STROKE_WIDTH = 22;
+const SUBMIT_DELAY_MS = 500;
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -14,6 +15,7 @@ ctx.lineWidth = STROKE_WIDTH;
 let drawing = false;
 let model = null;
 let outputStr = '';
+let submitTimer = null;
 
 function getPos(e) {
   const rect = canvas.getBoundingClientRect();
@@ -25,6 +27,10 @@ function getPos(e) {
 
 function startDraw(e) {
   drawing = true;
+  if (submitTimer) {
+    clearTimeout(submitTimer);
+    submitTimer = null;
+  }
   const { x, y } = getPos(e);
   ctx.beginPath();
   ctx.moveTo(x, y);
@@ -40,6 +46,12 @@ function draw(e) {
 function endDraw() {
   drawing = false;
   ctx.closePath();
+  // start inactivity timer for auto-submit
+  if (submitTimer) clearTimeout(submitTimer);
+  submitTimer = setTimeout(() => {
+    predictAndHandle({ append: true, clearAfter: true });
+    submitTimer = null;
+  }, SUBMIT_DELAY_MS);
 }
 
 canvas.addEventListener('mousedown', startDraw);
@@ -50,21 +62,11 @@ canvas.addEventListener('touchstart', (e) => { e.preventDefault(); startDraw(e);
 canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
 canvas.addEventListener('touchend', (e) => { e.preventDefault(); endDraw(e); });
 
-// Right-click to predict, append digit, and clear canvas for next digit
+// Right-click to predict, append digit, and clear canvas for next digit (manual override)
 canvas.addEventListener('contextmenu', async (e) => {
   e.preventDefault();
+  if (submitTimer) { clearTimeout(submitTimer); submitTimer = null; }
   await predictAndHandle({ append: true, clearAfter: true });
-});
-
-document.getElementById('clearBtn').addEventListener('click', () => {
-  clearCanvas();
-  document.getElementById('predDigit').textContent = '–';
-  document.getElementById('probs').innerHTML = '';
-});
-
-document.getElementById('predictBtn').addEventListener('click', async () => {
-  // Predict only, do not append or clear
-  await predictAndHandle({ append: false, clearAfter: false });
 });
 
 async function ensureModel() {
