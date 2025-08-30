@@ -1,7 +1,7 @@
 const CANVAS_SIZE = 280;
 const STROKE_COLOR = '#ffffff'; // white stroke on black background like MNIST
 const STROKE_WIDTH = 22;
-const SUBMIT_DELAY_MS = 500;
+const SUBMIT_DELAY_MS = 300;
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -47,13 +47,19 @@ function draw(e) {
 }
 
 function endDraw() {
+  // Only act if a stroke was in progress
+  if (!drawing) return;
   drawing = false;
   ctx.closePath();
   // start inactivity timer for auto-submit
   if (!strokeDrawn) return; // ignore simple clicks without drawing
+  if (!hasInk(canvas)) return; // ensure there is visible ink on the canvas
   if (submitTimer) clearTimeout(submitTimer);
   submitTimer = setTimeout(() => {
-    predictAndHandle({ append: true, clearAfter: true });
+    // Double-check ink before submitting
+    if (hasInk(canvas)) {
+      predictAndHandle({ append: true, clearAfter: true });
+    }
     submitTimer = null;
   }, SUBMIT_DELAY_MS);
 }
@@ -70,7 +76,9 @@ canvas.addEventListener('touchend', (e) => { e.preventDefault(); endDraw(e); });
 canvas.addEventListener('contextmenu', async (e) => {
   e.preventDefault();
   if (submitTimer) { clearTimeout(submitTimer); submitTimer = null; }
-  await predictAndHandle({ append: true, clearAfter: true });
+  if (hasInk(canvas)) {
+    await predictAndHandle({ append: true, clearAfter: true });
+  }
 });
 
 async function ensureModel() {
@@ -94,7 +102,7 @@ async function predictAndHandle({ append, clearAfter }) {
     const digit = argmaxIndex(probs);
     showResult(probs);
     if (append) appendDigit(digit);
-    if (clearAfter) clearCanvas();
+    if (clearAfter) { clearCanvas(); strokeDrawn = false; }
   } catch (err) {
     console.error(err);
     alert('Prediction failed. Make sure /model/model.json exists and you are serving from repo root.');
@@ -120,6 +128,18 @@ function clearCanvas() {
   ctx.fillStyle = '#000000';
   ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
   ctx.fillStyle = '#000000';
+}
+
+function hasInk(cnv) {
+  const w = cnv.width, h = cnv.height;
+  const data = cnv.getContext('2d').getImageData(0, 0, w, h).data;
+  const threshold = 10; // brightness > threshold counts as ink
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i], g = data[i + 1], b = data[i + 2];
+    const val = (r + g + b) / 3;
+    if (val > threshold) return true;
+  }
+  return false;
 }
 
 function preprocessCanvasTo28x28(srcCanvas) {
