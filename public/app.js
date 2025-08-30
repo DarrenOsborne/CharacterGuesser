@@ -186,18 +186,20 @@ function preprocessCanvasTo28x28(srcCanvas) {
 }
 
 function showResult(probs) {
-  // Find top-1
-  let bestIdx = 0, bestVal = probs[0];
-  for (let i = 1; i < 10; i++) {
-    if (probs[i] > bestVal) { bestVal = probs[i]; bestIdx = i; }
-  }
-  document.getElementById('predDigit').textContent = `${bestIdx}`;
+  // Prepare sorted probabilities descending by confidence
+  const rows = [];
+  for (let d = 0; d < 10; d++) rows.push({ d, p: probs[d] });
+  rows.sort((a, b) => b.p - a.p);
 
-  // Show bars for all digits
+  // Top-1 digit
+  const top = rows[0];
+  document.getElementById('predDigit').textContent = `${top.d}`;
+
+  // Render bars in sorted order (highest at top)
   const probsEl = document.getElementById('probs');
   probsEl.innerHTML = '';
-  for (let d = 0; d < 10; d++) {
-    const pct = Math.round(probs[d] * 1000) / 10; // 1 decimal
+  for (const { d, p } of rows) {
+    const pct = Math.round(p * 1000) / 10; // 1 decimal
     const row = document.createElement('div');
     row.className = 'bar';
     row.innerHTML = `
