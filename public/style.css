@@ -95,3 +95,18 @@ button:active { filter: brightness(0.95); }
   letter-spacing: 1px;
 }
 .hint { color: var(--muted); font-size: 12px; margin-top: 8px; }
+
+/* Side panel next to canvas */
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 320px;
+}
+
+.output-actions { display: flex; gap: 8px; margin-top: 8px; }
+
+.btn-secondary {
+  background: var(--accent-weak);
+  color: #dfe6ff;
+}

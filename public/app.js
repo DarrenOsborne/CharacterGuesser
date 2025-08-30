@@ -142,6 +142,30 @@ function hasInk(cnv) {
   return false;
 }
 
+// Output editing controls
+function updateOutputDisplay() {
+  const outEl = document.getElementById('outputValue');
+  if (outEl) outEl.textContent = outputStr.length ? outputStr : '(empty)';
+}
+
+const backspaceBtn = document.getElementById('backspaceBtn');
+if (backspaceBtn) {
+  backspaceBtn.addEventListener('click', () => {
+    if (outputStr.length > 0) {
+      outputStr = outputStr.slice(0, -1);
+      updateOutputDisplay();
+    }
+  });
+}
+
+const clearOutputBtn = document.getElementById('clearOutputBtn');
+if (clearOutputBtn) {
+  clearOutputBtn.addEventListener('click', () => {
+    outputStr = '';
+    updateOutputDisplay();
+  });
+}
+
 function preprocessCanvasTo28x28(srcCanvas) {
   // Get bounding box of non-black pixels
   const srcCtx = srcCanvas.getContext('2d');

@@ -12,20 +12,26 @@
       <h1>Draw a Digit (0–9)</h1>
       <div class="board">
         <canvas id="canvas" width="280" height="280"></canvas>
-      </div>
+        <div class="side">
+          
 
-      <section class="result">
-        <div class="pred">Prediction: <span id="predDigit">–</span></div>
-        <div id="probs" class="probs"></div>
-      </section>
-
-      <section class="output">
-        <h2>Output</h2>
-        <div class="output-row">
-          <div id="outputValue" class="output-value">(empty)</div>
+          <section class="output">
+            <h2>Output</h2>
+            <div class="output-row">
+              <div id="outputValue" class="output-value">(empty)</div>
+            </div>
+            <div class="output-actions">
+              <button id="backspaceBtn" class="btn-secondary">Backspace</button>
+              <button id="clearOutputBtn" class="btn-secondary">Clear</button>
+            </div>
+            <p class="hint">Pause 300 ms between strokes to submit, append, and clear.</p>
+          </section>
         </div>
-        <p class="hint">Stops drawing for 500 ms → auto‑submit, append digit, and clear for next.</p>
-      </section>
+      </div>
+      <section class="result">
+            <div class="pred">Prediction: <span id="predDigit">–</span></div>
+            <div id="probs" class="probs"></div>
+          </section>
     </main>
 
     <script src="./app.js"></script>
