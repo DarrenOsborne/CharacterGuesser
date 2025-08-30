@@ -275,6 +275,7 @@ function showResult(probs) {
   probsEl.innerHTML = '';
   for (const { d, p } of rows) {
     const pct = Math.round(p * 1000) / 10; // 1 decimal
+    if (pct <= 0) continue; // only show predictions over 0.0%
     const row = document.createElement('div');
     row.className = 'bar';
     row.innerHTML = `
