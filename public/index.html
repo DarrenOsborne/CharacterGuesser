@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MNIST Handwrite</title>
+    <link rel="stylesheet" href="./style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+  </head>
+  <body>
+    <main class="container">
+      <h1>Draw a Digit (0–9)</h1>
+      <div class="board">
+        <canvas id="canvas" width="280" height="280"></canvas>
+        <div class="controls">
+          <button id="clearBtn">Clear</button>
+          <button id="predictBtn">Predict</button>
+        </div>
+      </div>
+
+      <section class="result">
+        <div class="pred">Prediction: <span id="predDigit">–</span></div>
+        <div id="probs" class="probs"></div>
+      </section>
+
+      <section class="output">
+        <h2>Output</h2>
+        <div class="output-row">
+          <div id="outputValue" class="output-value">(empty)</div>
+        </div>
+        <p class="hint">Tip: Right‑click on the canvas to predict, append, and clear for the next digit.</p>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+  </html>
