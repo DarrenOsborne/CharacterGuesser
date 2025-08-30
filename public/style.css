@@ -110,3 +110,11 @@ button:active { filter: brightness(0.95); }
   background: var(--accent-weak);
   color: #dfe6ff;
 }
+
+.delay-control {
+  margin-top: 10px;
+  display: grid;
+  gap: 6px;
+}
+.delay-control label { color: var(--muted); font-size: 13px; }
+.delay-control input[type="range"] { width: 100%; }

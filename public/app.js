@@ -1,7 +1,7 @@
 const CANVAS_SIZE = 280;
 const STROKE_COLOR = '#ffffff'; // white stroke on black background like MNIST
 const STROKE_WIDTH = 22;
-const SUBMIT_DELAY_MS = 300;
+let submitDelayMs = 300; // adjustable via slider
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -61,7 +61,7 @@ function endDraw() {
       predictAndHandle({ append: true, clearAfter: true });
     }
     submitTimer = null;
-  }, SUBMIT_DELAY_MS);
+  }, submitDelayMs);
 }
 
 canvas.addEventListener('mousedown', startDraw);
@@ -163,6 +163,31 @@ if (clearOutputBtn) {
   clearOutputBtn.addEventListener('click', () => {
     outputStr = '';
     updateOutputDisplay();
+  });
+}
+
+// Delay slider wiring
+const delaySlider = document.getElementById('delaySlider');
+const delayValue = document.getElementById('delayValue');
+if (delaySlider && delayValue) {
+  const setDelay = (v) => {
+    const n = Math.max(0, Math.min(1000, parseInt(v, 10) || 0));
+    submitDelayMs = n;
+    delayValue.textContent = String(n);
+  };
+  setDelay(delaySlider.value || '300');
+  delaySlider.addEventListener('input', (e) => {
+    setDelay(e.target.value);
+    // If a timer is running, reschedule with new delay from now
+    if (submitTimer) {
+      clearTimeout(submitTimer);
+      submitTimer = setTimeout(() => {
+        if (hasInk(canvas)) {
+          predictAndHandle({ append: true, clearAfter: true });
+        }
+        submitTimer = null;
+      }, submitDelayMs);
+    }
   });
 }
 

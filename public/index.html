@@ -24,7 +24,11 @@
               <button id="backspaceBtn" class="btn-secondary">Backspace</button>
               <button id="clearOutputBtn" class="btn-secondary">Clear</button>
             </div>
-            <p class="hint">Pause 300 ms between strokes to submit, append, and clear.</p>
+            <div class="delay-control">
+              <label for="delaySlider">Auto-submit delay: <span id="delayValue">300</span> ms</label>
+              <input id="delaySlider" type="range" min="0" max="1000" step="25" value="300" />
+            </div>
+            <p class="hint">Adjust delay 0–1000 ms. Submits after inactivity between strokes.</p>
           </section>
         </div>
       </div>
