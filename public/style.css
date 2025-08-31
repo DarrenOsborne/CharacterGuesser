@@ -118,3 +118,30 @@ button:active { filter: brightness(0.95); }
 }
 .delay-control label { color: var(--muted); font-size: 13px; }
 .delay-control input[type="range"] { width: 100%; }
+
+/* Game UI */
+.game h2 { margin: 0 0 8px 0; font-size: 18px; font-weight: 600; }
+.tape-wrap {
+  overflow: hidden;
+  border: 1px solid #2a2f3a;
+  border-radius: 8px;
+  background: var(--panel);
+  padding: 10px 12px;
+}
+.tape {
+  display: inline-flex;
+  gap: 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 28px;
+  transition: transform 180ms ease;
+  will-change: transform;
+}
+.cell { width: 1ch; text-align: center; }
+.cell.current { color: var(--accent); }
+.cell.wrong { color: #ff6b6b; }
+.cell.done { color: var(--muted); }
+.stats { display: flex; gap: 16px; margin-top: 8px; color: var(--muted); font-size: 13px; }
+.game-actions { margin-top: 8px; }
+
+/* Hide legacy output UI */
+.output { display: none !important; }

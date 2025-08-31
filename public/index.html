@@ -3,41 +3,42 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>MNIST Handwrite</title>
+    <title>Letter Sprint</title>
     <link rel="stylesheet" href="./style.css" />
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
   </head>
   <body>
     <main class="container">
-      <h1>Draw a Letter (a–z)</h1>
+      <h1>Draw a Letter (a-z)</h1>
       <div class="board">
         <canvas id="canvas" width="280" height="280"></canvas>
         <div class="side">
-          
+          <section class="game">
+            <h2>Letter Sprint</h2>
+            <div class="tape-wrap"><div id="tape" class="tape"></div></div>
+            <div class="stats">
+              <div>Elapsed: <span id="elapsed">0.0s</span></div>
+              <div>LPM: <span id="lpm">0.0</span></div>
+            </div>
+            <div class="game-actions"><button id="resetGame" class="btn-secondary">Reset</button></div>
+          </section>
 
-          <section class="output">
-            <h2>Output</h2>
-            <div class="output-row">
-              <div id="outputValue" class="output-value">(empty)</div>
-            </div>
-            <div class="output-actions">
-              <button id="backspaceBtn" class="btn-secondary">Backspace</button>
-              <button id="clearOutputBtn" class="btn-secondary">Clear</button>
-            </div>
+          <section class="controls">
             <div class="delay-control">
               <label for="delaySlider">Auto-submit delay: <span id="delayValue">300</span> ms</label>
               <input id="delaySlider" type="range" min="0" max="1000" step="25" value="300" />
             </div>
-            <p class="hint">Adjust delay 0–1000 ms. Submits after inactivity between strokes.</p>
+            <p class="hint">Starts when you first draw. Completes when all letters are done.</p>
           </section>
         </div>
       </div>
+
       <section class="result">
-            <div class="pred">Prediction: <span id="predDigit">–</span></div>
-            <div id="probs" class="probs"></div>
-          </section>
+        <div class="pred">Prediction: <span id="predDigit">–</span></div>
+        <div id="probs" class="probs"></div>
+      </section>
     </main>
 
-    <script src="./app.js?v=2"></script>
+    <script src="./app.js?v=3"></script>
   </body>
   </html>

@@ -20,9 +20,19 @@ ctx.lineWidth = STROKE_WIDTH;
 
 let drawing = false;
 let model = null;
-let outputStr = '';
 let submitTimer = null;
 let strokeDrawn = false; // true only if the last stroke had movement
+
+// Game state
+const game = {
+  target: '',
+  index: 0,
+  started: false,
+  startMs: 0,
+  endMs: 0,
+  lastWrong: false,
+  timerId: null,
+};
 
 function getPos(e) {
   const rect = canvas.getBoundingClientRect();
@@ -109,7 +119,7 @@ async function predictAndHandle({ append, clearAfter }) {
     // Ambiguity helpers for b vs d and p vs q
     idx = adjustAmbiguitiesLetters(idx, probs, canvas);
     showResult(probs, idx);
-    if (append) appendDigit(LABELS[idx]);
+    if (append) handleGuess(LABELS[idx]);
     if (clearAfter) { clearCanvas(); strokeDrawn = false; }
   } catch (err) {
     console.error(err);
@@ -125,10 +135,18 @@ function argmaxIndex(arr) {
   return idx;
 }
 
-function appendDigit(ch) {
-  outputStr += String(ch);
-  const outEl = document.getElementById('outputValue');
-  if (outEl) outEl.textContent = outputStr.length ? outputStr : '(empty)';
+function handleGuess(ch) {
+  if (!game.started) startClock();
+  if (game.index >= game.target.length) return; // finished
+  const want = game.target[game.index];
+  if (ch === want) {
+    game.index += 1;
+    game.lastWrong = false;
+    if (game.index >= game.target.length) finishClock();
+  } else {
+    game.lastWrong = true;
+  }
+  updateTape();
 }
 
 function clearCanvas() {
@@ -150,29 +168,79 @@ function hasInk(cnv) {
   return false;
 }
 
-// Output editing controls
-function updateOutputDisplay() {
-  const outEl = document.getElementById('outputValue');
-  if (outEl) outEl.textContent = outputStr.length ? outputStr : '(empty)';
+// Game helpers and wiring
+function randLetter() { return LABELS[Math.floor(Math.random() * LABELS.length)]; }
+function makeTarget(n=20) { let s=''; for (let i=0;i<n;i++) s+=randLetter(); return s; }
+
+function buildTape() {
+  const tape = document.getElementById('tape');
+  if (!tape) return;
+  tape.innerHTML = '';
+  for (let i = 0; i < game.target.length; i++) {
+    const el = document.createElement('div');
+    el.className = 'cell';
+    el.textContent = game.target[i];
+    tape.appendChild(el);
+  }
+  updateTape();
 }
 
-const backspaceBtn = document.getElementById('backspaceBtn');
-if (backspaceBtn) {
-  backspaceBtn.addEventListener('click', () => {
-    if (outputStr.length > 0) {
-      outputStr = outputStr.slice(0, -1);
-      updateOutputDisplay();
-    }
-  });
+function updateTape() {
+  const tape = document.getElementById('tape');
+  if (!tape) return;
+  const children = tape.children;
+  for (let i = 0; i < children.length; i++) {
+    const el = children[i];
+    el.classList.remove('done','current','wrong');
+    if (i < game.index) el.classList.add('done');
+    else if (i === game.index) el.classList.add(game.lastWrong ? 'wrong' : 'current');
+  }
+  const current = children[game.index];
+  const offset = current ? current.offsetLeft : 0;
+  tape.style.transform = `translateX(${-offset}px)`;
+  updateStats();
 }
 
-const clearOutputBtn = document.getElementById('clearOutputBtn');
-if (clearOutputBtn) {
-  clearOutputBtn.addEventListener('click', () => {
-    outputStr = '';
-    updateOutputDisplay();
-  });
+function startClock() {
+  game.started = true;
+  game.startMs = Date.now();
+  game.endMs = 0;
+  if (game.timerId) clearInterval(game.timerId);
+  game.timerId = setInterval(updateStats, 100);
 }
+function finishClock() {
+  game.endMs = Date.now();
+  if (game.timerId) { clearInterval(game.timerId); game.timerId = null; }
+  updateStats();
+}
+function elapsedMs() { return !game.started ? 0 : (game.endMs || Date.now()) - game.startMs; }
+function updateStats() {
+  const elElapsed = document.getElementById('elapsed');
+  const elLpm = document.getElementById('lpm');
+  const ms = elapsedMs();
+  if (elElapsed) elElapsed.textContent = (ms/1000).toFixed(1) + 's';
+  const lettersDone = Math.min(game.index, game.target.length);
+  const minutes = Math.max(ms/60000, 1e-6);
+  const lpm = lettersDone / minutes;
+  if (elLpm) elLpm.textContent = lpm.toFixed(1);
+}
+function resetGame() {
+  game.target = makeTarget(20);
+  game.index = 0;
+  game.started = false;
+  game.startMs = 0; game.endMs = 0; game.lastWrong = false;
+  if (game.timerId) { clearInterval(game.timerId); game.timerId = null; }
+  buildTape();
+  clearCanvas();
+  const probsEl = document.getElementById('probs'); if (probsEl) probsEl.innerHTML = '';
+  const predEl = document.getElementById('predDigit'); if (predEl) predEl.textContent = '–';
+  const elElapsed = document.getElementById('elapsed'); if (elElapsed) elElapsed.textContent = '0.0s';
+  const elLpm = document.getElementById('lpm'); if (elLpm) elLpm.textContent = '0.0';
+}
+const resetBtn = document.getElementById('resetGame');
+if (resetBtn) resetBtn.addEventListener('click', resetGame);
+// init
+resetGame();
 
 // Delay slider wiring
 const delaySlider = document.getElementById('delaySlider');
