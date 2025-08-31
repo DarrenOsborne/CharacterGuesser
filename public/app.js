@@ -1,6 +1,13 @@
 const CANVAS_SIZE = 280;
 const STROKE_COLOR = '#ffffff'; // white stroke on black background like MNIST
 const STROKE_WIDTH = 22;
+const FLIP_INPUT_HORIZONTAL = true; // Flip 28x28 input to match EMNIST orientation
+const LABELS = [
+  '0','1','2','3','4','5','6','7','8','9',
+  'a','b','c','d','e','f','g','h','i','j',
+  'k','l','m','n','o','p','q','r','s','t',
+  'u','v','w','x','y','z'
+];
 let submitDelayMs = 300; // adjustable via slider
 
 const canvas = document.getElementById('canvas');
@@ -99,9 +106,11 @@ async function predictAndHandle({ append, clearAfter }) {
     const probs = logits.dataSync();
     input.dispose();
     tf.dispose(logits);
-    const digit = argmaxIndex(probs);
-    showResult(probs);
-    if (append) appendDigit(digit);
+    let idx = argmaxIndex(probs);
+    // Ambiguity helpers for 0 vs o and b vs 6
+    idx = adjustAmbiguities(idx, probs, canvas);
+    showResult(probs, idx);
+    if (append) appendDigit(LABELS[idx]);
     if (clearAfter) { clearCanvas(); strokeDrawn = false; }
   } catch (err) {
     console.error(err);
@@ -117,8 +126,8 @@ function argmaxIndex(arr) {
   return idx;
 }
 
-function appendDigit(d) {
-  outputStr += String(d);
+function appendDigit(ch) {
+  outputStr += String(ch);
   const outEl = document.getElementById('outputValue');
   if (outEl) outEl.textContent = outputStr.length ? outputStr : '(empty)';
 }
@@ -251,24 +260,29 @@ function preprocessCanvasTo28x28(srcCanvas) {
   // Convert to grayscale float32 tensor scaled [0,1], shape [28,28,1]
   const imgData = tctx.getImageData(0, 0, 28, 28);
   const buf = new Float32Array(28 * 28);
-  for (let i = 0; i < 28 * 28; i++) {
-    const r = imgData.data[i * 4];
-    const g = imgData.data[i * 4 + 1];
-    const b = imgData.data[i * 4 + 2];
-    buf[i] = (r + g + b) / (3 * 255); // already white on black, matches MNIST
+  for (let y = 0; y < 28; y++) {
+    for (let x = 0; x < 28; x++) {
+      const srcX = FLIP_INPUT_HORIZONTAL ? (27 - x) : x; // mirror horizontally if enabled
+      const idx = (y * 28 + srcX) * 4;
+      const r = imgData.data[idx];
+      const g = imgData.data[idx + 1];
+      const b = imgData.data[idx + 2];
+      buf[y * 28 + x] = (r + g + b) / (3 * 255);
+    }
   }
   return tf.tensor(buf, [28, 28, 1]);
 }
 
-function showResult(probs) {
+function showResult(probs, topIdxOverride = null) {
   // Prepare sorted probabilities descending by confidence
   const rows = [];
-  for (let d = 0; d < 10; d++) rows.push({ d, p: probs[d] });
+  for (let d = 0; d < probs.length; d++) rows.push({ d, p: probs[d] });
   rows.sort((a, b) => b.p - a.p);
 
   // Top-1 digit
   const top = rows[0];
-  document.getElementById('predDigit').textContent = `${top.d}`;
+  const topIdx = topIdxOverride != null ? topIdxOverride : top.d;
+  document.getElementById('predDigit').textContent = `${LABELS[topIdx]}`;
 
   // Render bars in sorted order (highest at top)
   const probsEl = document.getElementById('probs');
@@ -279,10 +293,80 @@ function showResult(probs) {
     const row = document.createElement('div');
     row.className = 'bar';
     row.innerHTML = `
-      <div>${d}</div>
+      <div>${LABELS[d]}</div>
       <div class="track"><div class="fill" style="width:${Math.min(100, pct)}%"></div></div>
       <div class="pct">${pct.toFixed(1)}%</div>
     `;
     probsEl.appendChild(row);
   }
+}
+
+function getInkBoundingBox(srcCanvas) {
+  const ctx2 = srcCanvas.getContext('2d');
+  const img = ctx2.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+  let minX = CANVAS_SIZE, minY = CANVAS_SIZE, maxX = -1, maxY = -1;
+  const threshold = 10;
+  for (let y = 0; y < CANVAS_SIZE; y++) {
+    for (let x = 0; x < CANVAS_SIZE; x++) {
+      const i = (y * CANVAS_SIZE + x) * 4;
+      const r = img.data[i], g = img.data[i + 1], b = img.data[i + 2];
+      const val = (r + g + b) / 3;
+      if (val > threshold) {
+        if (x < minX) minX = x;
+        if (y < minY) minY = y;
+        if (x > maxX) maxX = x;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+  if (maxX < 0 || maxY < 0) return null;
+  return { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 };
+}
+
+function leftColumnCoverage(srcCanvas, frac = 0.15) {
+  const ctx2 = srcCanvas.getContext('2d');
+  const w = CANVAS_SIZE, h = CANVAS_SIZE;
+  const img = ctx2.getImageData(0, 0, w, h);
+  const colLimit = Math.floor(w * frac);
+  const threshold = 10;
+  let rowsWithInkLeft = 0;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < colLimit; x++) {
+      const i = (y * w + x) * 4;
+      const r = img.data[i], g = img.data[i + 1], b = img.data[i + 2];
+      const val = (r + g + b) / 3;
+      if (val > threshold) { rowsWithInkLeft++; break; }
+    }
+  }
+  return rowsWithInkLeft / h; // 0..1
+}
+
+function getTopKIndices(probs, k) {
+  const idxs = probs.map((p, i) => i).sort((a, b) => probs[b] - probs[a]);
+  return idxs.slice(0, k);
+}
+
+function adjustAmbiguities(idx, probs, srcCanvas) {
+  const top2 = getTopKIndices(probs, 2);
+  const labelAt = (i) => LABELS[i];
+  const setHas = (arr, ch) => arr.some((i) => labelAt(i) === ch);
+
+  // 0 vs o: use aspect ratio of ink bounding box
+  if (setHas(top2, '0') && setHas(top2, 'o')) {
+    const box = getInkBoundingBox(srcCanvas);
+    if (box) {
+      const ar = box.h / box.w; // taller than wide -> likely '0'
+      if (ar > 1.12) return LABELS.indexOf('0');
+      if (ar < 0.92) return LABELS.indexOf('o');
+    }
+  }
+
+  // b vs 6: presence of a left vertical stem (ink coverage near left edge)
+  if (setHas(top2, 'b') && setHas(top2, '6')) {
+    const cov = leftColumnCoverage(srcCanvas, 0.12);
+    if (cov > 0.55) return LABELS.indexOf('b');
+    if (cov < 0.25) return LABELS.indexOf('6');
+  }
+
+  return idx;
 }
