@@ -139,7 +139,35 @@ if(delaySlider && delayValue){ const setDelay=(v)=>{ const n=Math.max(0,Math.min
 
 // Logging + diagnostics
 function recordAttempt(targetChar, probs, predIdx){ const correctIdx=LABELS.indexOf(targetChar); let pCorrect=0,pOtherMax=0; for(let i=0;i<probs.length;i++){ const p=probs[i]; if(i===correctIdx) pCorrect=p; else if(p>pOtherMax) pOtherMax=p; } const correct=(predIdx===correctIdx); game.logs.push({target:targetChar, predIdx, pCorrect, pOtherMax, correct}); }
-function showDiagnostics(){ const modal=document.getElementById('diagModal'); if(!modal) return; const per=new Map(); const counts=new Map(); for(const ch of game.target) counts.set(ch,(counts.get(ch)||0)+1); for(const log of game.logs){ const e=per.get(log.target)||{attempts:0,wrong:0,sumConf:0,sumMargin:0}; e.attempts+=1; if(!log.correct) e.wrong+=1; e.sumConf+=log.pCorrect; e.sumMargin+=(log.pCorrect - log.pOtherMax); per.set(log.target,e); } const tbody=document.getElementById('diagTable'); if(tbody) tbody.innerHTML=''; const letters=Array.from(new Set(game.target.split(''))).sort(); for(const ch of letters){ const e=per.get(ch)||{attempts:0,wrong:0,sumConf:0,sumMargin:0}; const cnt=counts.get(ch)||0; const att=e.attempts; const wrongPct=att? (100*e.wrong/att) : 0; const avgConf=att? (100*e.sumConf/att) : 0; const avgMargin=att? (100*e.sumMargin/att) : 0; if(tbody){ const tr=document.createElement('tr'); tr.innerHTML = `<td>${ch}</td><td>${cnt}</td><td>${att}</td><td>${wrongPct.toFixed(1)}%</td><td>${avgConf.toFixed(1)}%</td><td>${avgMargin.toFixed(1)}%</td>`; tbody.appendChild(tr);} }
+function showDiagnostics(){
+  const modal=document.getElementById('diagModal'); if(!modal) return;
+  // Aggregate attempts per letter
+  const per=new Map();
+  for (const log of game.logs){
+    const e=per.get(log.target)||{attempts:0,wrong:0,sumConf:0,sumMargin:0};
+    e.attempts += 1;
+    if (!log.correct) e.wrong += 1;
+    e.sumConf += log.pCorrect;
+    e.sumMargin += (log.pCorrect - log.pOtherMax);
+    per.set(log.target, e);
+  }
+
+  // Build full table rows: Letter | Accuracy% | Avg Conf% | Avg Gap%
+  const tbody=document.getElementById('diagTable'); if (tbody) tbody.innerHTML='';
+  const letters=Array.from(per.keys()).sort();
+  for (const ch of letters){
+    const e=per.get(ch);
+    const att=e.attempts;
+    const accPct = att ? (100*(att - e.wrong)/att) : 0;
+    const avgConf = att ? (100*e.sumConf/att) : 0;
+    const avgMargin = att ? (100*e.sumMargin/att) : 0;
+    if (tbody){
+      const tr=document.createElement('tr');
+      tr.innerHTML = `<td>${ch}</td><td>${accPct.toFixed(1)}%</td><td>${avgConf.toFixed(1)}%</td><td>${avgMargin.toFixed(1)}%</td>`;
+      tbody.appendChild(tr);
+    }
+  }
+
   // Big metrics
   const totalAttempts = game.logs.length;
   const correctAttempts = game.logs.reduce((a,l)=> a + (l.correct?1:0), 0);
@@ -151,18 +179,40 @@ function showDiagnostics(){ const modal=document.getElementById('diagModal'); if
   const diagAvgConf=document.getElementById('diagAvgConf'); if(diagAvgConf) diagAvgConf.textContent = overallAvgConf.toFixed(1) + '%';
   const diagAttempts=document.getElementById('diagAttempts'); if(diagAttempts) diagAttempts.textContent=String(totalAttempts);
 
-  // Top and bottom 3 by avg margin
+  // Top and bottom 3 by avg gap (clarity)
   const rowsForRank = letters.map(ch => {
-    const e=per.get(ch)||{attempts:0,wrong:0,sumConf:0,sumMargin:0};
-    const cnt=counts.get(ch)||0; const att=e.attempts; const wrongPct=att? (100*e.wrong/att):0; const avgConf=att?(100*e.sumConf/att):0; const avgMargin=att?(100*e.sumMargin/att):0;
-    return {ch,cnt,att,wrongPct,avgConf,avgMargin};
+    const e=per.get(ch);
+    const att=e.attempts;
+    return {
+      ch,
+      att,
+      accPct: att ? (100*(att - e.wrong)/att) : 0,
+      avgConf: att ? (100*e.sumConf/att) : 0,
+      avgMargin: att ? (100*e.sumMargin/att) : 0,
+    };
   }).filter(r=>r.att>0);
   rowsForRank.sort((a,b)=> b.avgMargin - a.avgMargin);
   const top3 = rowsForRank.slice(0,3);
   const bottom3 = rowsForRank.slice(-3).reverse();
 
-  const topBody = document.getElementById('diagTopTable'); if (topBody) { topBody.innerHTML=''; for(const r of top3){ const tr=document.createElement('tr'); tr.innerHTML = `<td>${r.ch}</td><td>${r.cnt}</td><td>${r.att}</td><td>${r.wrongPct.toFixed(1)}%</td><td>${r.avgConf.toFixed(1)}%</td><td>${r.avgMargin.toFixed(1)}%</td>`; topBody.appendChild(tr);} }
-  const bottomBody = document.getElementById('diagBottomTable'); if (bottomBody) { bottomBody.innerHTML=''; for(const r of bottom3){ const tr=document.createElement('tr'); tr.innerHTML = `<td>${r.ch}</td><td>${r.cnt}</td><td>${r.att}</td><td>${r.wrongPct.toFixed(1)}%</td><td>${r.avgConf.toFixed(1)}%</td><td>${r.avgMargin.toFixed(1)}%</td>`; bottomBody.appendChild(tr);} }
+  const topBody = document.getElementById('diagTopTable');
+  if (topBody) {
+    topBody.innerHTML='';
+    for (const r of top3){
+      const tr=document.createElement('tr');
+      tr.innerHTML = `<td>${r.ch}</td><td>${r.accPct.toFixed(1)}%</td><td>${r.avgConf.toFixed(1)}%</td><td>${r.avgMargin.toFixed(1)}%</td>`;
+      topBody.appendChild(tr);
+    }
+  }
+  const bottomBody = document.getElementById('diagBottomTable');
+  if (bottomBody) {
+    bottomBody.innerHTML='';
+    for (const r of bottom3){
+      const tr=document.createElement('tr');
+      tr.innerHTML = `<td>${r.ch}</td><td>${r.accPct.toFixed(1)}%</td><td>${r.avgConf.toFixed(1)}%</td><td>${r.avgMargin.toFixed(1)}%</td>`;
+      bottomBody.appendChild(tr);
+    }
+  }
 
   modal.hidden=false;
 }

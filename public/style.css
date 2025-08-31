@@ -162,6 +162,7 @@ button:active { filter: brightness(0.95); }
 .modal[hidden] { display: none; }
 .modal {
   position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(2px);
   display: flex; align-items: center; justify-content: center;
   z-index: 1000;
 }
@@ -172,11 +173,21 @@ button:active { filter: brightness(0.95); }
   border: 1px solid #2a2f3a;
   border-radius: 10px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-  padding: 16px;
-  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
-.modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 2;
+  background: rgba(23, 26, 33, 0.85);
+  -webkit-backdrop-filter: saturate(180%) blur(10px);
+  backdrop-filter: saturate(180%) blur(10px);
+  padding: 12px 16px;
+  border-bottom: 1px solid #2a2f3a;
+}
 .modal-title { font-weight: 700; font-size: 18px; }
+.modal-body { padding: 12px 16px 16px 16px; overflow: auto; }
 .diag-summary { margin: 8px 0 12px 0; color: var(--muted); }
 .table-wrap { overflow: auto; border: 1px solid #2a2f3a; border-radius: 8px; }
 .diag-table { width: 100%; border-collapse: collapse; font-size: 14px; }
@@ -204,3 +215,19 @@ button:active { filter: brightness(0.95); }
 .howto-title { font-weight: 700; margin-bottom: 6px; }
 .howto ol { margin: 0; padding-left: 18px; }
 .howto li { margin: 4px 0; }
+
+/* Dark scrollbars inside modal */
+.modal-body, .table-wrap {
+  scrollbar-color: #3a4252 #1b202b; /* thumb track */
+  scrollbar-width: thin;
+}
+.modal-body::-webkit-scrollbar, .table-wrap::-webkit-scrollbar { width: 10px; height: 10px; }
+.modal-body::-webkit-scrollbar-thumb, .table-wrap::-webkit-scrollbar-thumb {
+  background-color: #3a4252;
+  border-radius: 8px;
+  border: 2px solid #1b202b;
+}
+.modal-body::-webkit-scrollbar-track, .table-wrap::-webkit-scrollbar-track {
+  background: #1b202b;
+  border-radius: 8px;
+}
