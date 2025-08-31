@@ -15,6 +15,9 @@ Write-Host "Copying UI from '$SourcePublic' to '$Dest'..." -ForegroundColor Cyan
 New-Item -ItemType Directory -Path $Dest | Out-Null
 Copy-Item -Recurse -Force "$SourcePublic\*" $Dest
 
+# Avoid Jekyll processing on GitHub Pages
+New-Item -ItemType File -Path "$Dest\.nojekyll" -Force | Out-Null
+
 if (-Not (Test-Path $SourceModel)) {
   Write-Warning "Model folder '$SourceModel' not found. Run training/export to create TF.js model (model/model.json)."
 } else {

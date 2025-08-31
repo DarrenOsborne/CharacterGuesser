@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Letter Sprint — Draw The Highlighted Letter</title>
+    <link rel="stylesheet" href="./style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+  </head>
+  <body>
+    <main class="container">
+      <h1>Letter Sprint — Draw The Highlighted Letter</h1>
+      <div class="board">
+        <div class="canvas-wrap">
+          <canvas id="canvas" width="280" height="280"></canvas>
+          <div id="canvasHint" class="canvas-hint">Draw here to start</div>
+        </div>
+        <div class="side">
+          <section class="game">
+            <h2>Letter Sprint</h2>
+            <div class="current-letter">
+              <div class="label">Current Letter</div>
+              <div id="currentLetter" class="value">–</div>
+            </div>
+            <div class="subtle">Your Target</div>
+            <div class="tape-wrap"><div id="tape" class="tape"></div></div>
+            <div class="stats">
+              <div>Elapsed: <span id="elapsed">0.0s</span></div>
+              <div>LPM: <span id="lpm">0.0</span></div>
+            </div>
+            <div class="game-actions"><button id="resetGame" class="btn-secondary">Reset</button></div>
+          </section>
+
+          <section class="controls">
+            <div class="delay-control">
+              <label for="delaySlider">Auto-submit delay: <span id="delayValue">300</span> ms</label>
+              <input id="delaySlider" type="range" min="0" max="1000" step="25" value="300" />
+            </div>
+            <div class="howto">
+              <div class="howto-title">How To Play</div>
+              <ol>
+                <li>Draw the highlighted letter in the canvas.</li>
+                <li>Pause briefly (delay above) to submit.</li>
+                <li>Wrong guess turns the letter red — keep trying.</li>
+                <li>Finish all 20 letters. Diagnostics will pop up.</li>
+              </ol>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <section class="result">
+        <div class="pred">Prediction: <span id="predDigit">–</span></div>
+        <div id="probs" class="probs"></div>
+      </section>
+    </main>
+
+    <!-- Diagnostics Modal -->
+    <div id="diagModal" class="modal" hidden>
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <div class="modal-title">Diagnostics</div>
+          <button id="diagClose" class="btn-secondary">Close</button>
+        </div>
+        <div class="modal-body">
+          <p class="hint">Definitions: Confidence = model probability for the correct letter p(correct). Gap (clarity) = p(correct) − highest other probability (Top‑2 gap). Higher gap means clearer writing.</p>
+
+          <div class="metrics">
+            <div class="metric">
+              <div class="metric-label">Average LPM</div>
+              <div id="diagLpmBig" class="metric-value">0.0</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Accuracy</div>
+              <div id="diagAcc" class="metric-value">0.0%</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Avg Confidence (p(correct))</div>
+              <div id="diagAvgConf" class="metric-value">0.0%</div>
+            </div>
+          </div>
+
+          <div class="tops-grid">
+            <div>
+              <h3>Top 3 Letters</h3>
+              <div class="table-wrap">
+                <table class="diag-table">
+                  <thead>
+                    <tr>
+                      <th>Letter</th>
+                      <th>Accuracy%</th>
+                      <th>Avg Conf% (p(correct))</th>
+                      <th>Avg Gap% (Top‑2)</th>
+                    </tr>
+                  </thead>
+                  <tbody id="diagTopTable"></tbody>
+                </table>
+              </div>
+            </div>
+            <div>
+              <h3>Bottom 3 Letters</h3>
+              <div class="table-wrap">
+                <table class="diag-table">
+                  <thead>
+                    <tr>
+                      <th>Letter</th>
+                      <th>Accuracy%</th>
+                      <th>Avg Conf% (p(correct))</th>
+                      <th>Avg Gap% (Top‑2)</th>
+                    </tr>
+                  </thead>
+                  <tbody id="diagBottomTable"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="diag-summary">Total attempts: <span id="diagAttempts">0</span></div>
+          <div class="table-wrap">
+            <table class="diag-table">
+              <thead>
+                <tr>
+                  <th>Letter</th>
+                  <th>Accuracy%</th>
+                  <th>Avg Conf% (p(correct))</th>
+                  <th>Avg Gap% (Top‑2)</th>
+                </tr>
+              </thead>
+              <tbody id="diagTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="./app_game.js?v=1"></script>
+  </body>
+  </html>
