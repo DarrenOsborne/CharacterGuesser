@@ -3,7 +3,6 @@ const STROKE_COLOR = '#ffffff'; // white stroke on black background like MNIST
 const STROKE_WIDTH = 22;
 const FLIP_INPUT_HORIZONTAL = true; // Flip 28x28 input to match EMNIST orientation
 const LABELS = [
-  '0','1','2','3','4','5','6','7','8','9',
   'a','b','c','d','e','f','g','h','i','j',
   'k','l','m','n','o','p','q','r','s','t',
   'u','v','w','x','y','z'
@@ -107,8 +106,8 @@ async function predictAndHandle({ append, clearAfter }) {
     input.dispose();
     tf.dispose(logits);
     let idx = argmaxIndex(probs);
-    // Ambiguity helpers for 0 vs o and b vs 6
-    idx = adjustAmbiguities(idx, probs, canvas);
+    // Ambiguity helpers for b vs d and p vs q
+    idx = adjustAmbiguitiesLetters(idx, probs, canvas);
     showResult(probs, idx);
     if (append) appendDigit(LABELS[idx]);
     if (clearAfter) { clearCanvas(); strokeDrawn = false; }
@@ -346,27 +345,42 @@ function getTopKIndices(probs, k) {
   return idxs.slice(0, k);
 }
 
-function adjustAmbiguities(idx, probs, srcCanvas) {
+function rightColumnCoverage(srcCanvas, frac = 0.15) {
+  const ctx2 = srcCanvas.getContext('2d');
+  const w = CANVAS_SIZE, h = CANVAS_SIZE;
+  const img = ctx2.getImageData(0, 0, w, h);
+  const start = Math.floor(w * (1 - frac));
+  const threshold = 10;
+  let rowsWithInkRight = 0;
+  for (let y = 0; y < h; y++) {
+    for (let x = start; x < w; x++) {
+      const i = (y * w + x) * 4;
+      const r = img.data[i], g = img.data[i + 1], b = img.data[i + 2];
+      const val = (r + g + b) / 3;
+      if (val > threshold) { rowsWithInkRight++; break; }
+    }
+  }
+  return rowsWithInkRight / h; // 0..1
+}
+
+function adjustAmbiguitiesLetters(idx, probs, srcCanvas) {
   const top2 = getTopKIndices(probs, 2);
   const labelAt = (i) => LABELS[i];
   const setHas = (arr, ch) => arr.some((i) => labelAt(i) === ch);
 
-  // 0 vs o: use aspect ratio of ink bounding box
-  if (setHas(top2, '0') && setHas(top2, 'o')) {
-    const box = getInkBoundingBox(srcCanvas);
-    if (box) {
-      const ar = box.h / box.w; // taller than wide -> likely '0'
-      if (ar > 1.12) return LABELS.indexOf('0');
-      if (ar < 0.92) return LABELS.indexOf('o');
-    }
+  // b vs d: left stem vs right stem
+  if (setHas(top2, 'b') && setHas(top2, 'd')) {
+    const left = leftColumnCoverage(srcCanvas, 0.12);
+    const right = rightColumnCoverage(srcCanvas, 0.12);
+    if (left > right + 0.15) return LABELS.indexOf('b');
+    if (right > left + 0.15) return LABELS.indexOf('d');
   }
-
-  // b vs 6: presence of a left vertical stem (ink coverage near left edge)
-  if (setHas(top2, 'b') && setHas(top2, '6')) {
-    const cov = leftColumnCoverage(srcCanvas, 0.12);
-    if (cov > 0.55) return LABELS.indexOf('b');
-    if (cov < 0.25) return LABELS.indexOf('6');
+  // p vs q: left stem vs right stem
+  if (setHas(top2, 'p') && setHas(top2, 'q')) {
+    const left = leftColumnCoverage(srcCanvas, 0.12);
+    const right = rightColumnCoverage(srcCanvas, 0.12);
+    if (left > right + 0.15) return LABELS.indexOf('p');
+    if (right > left + 0.15) return LABELS.indexOf('q');
   }
-
   return idx;
 }
