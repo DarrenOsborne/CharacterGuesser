@@ -69,7 +69,7 @@ canvas.addEventListener('touchend', (e)=>{e.preventDefault();endDraw(e);});
 canvas.addEventListener('contextmenu', async (e)=>{e.preventDefault(); if (submitTimer){clearTimeout(submitTimer); submitTimer=null;} if (hasInk(canvas)) await predictAndHandle({append:true, clearAfter:true});});
 
 // Model
-async function ensureModel(){ if(!model){ model = await tf.loadLayersModel('/model/model.json'); } }
+async function ensureModel(){ if(!model){ model = await tf.loadLayersModel('model/model.json'); } }
 
 async function predictAndHandle({append, clearAfter}){
   try{

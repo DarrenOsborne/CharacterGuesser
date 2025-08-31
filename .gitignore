@@ -218,8 +218,13 @@ node_modules/
 .DS_Store
 Thumbs.db
 
-# Trained model artifacts
+# Trained model artifacts (local)
 model/
+
+# Allow deployable model in public/docs for GitHub Pages
+!public/model/
+!docs/
+!docs/**
 
 # Editor
 .vscode/
