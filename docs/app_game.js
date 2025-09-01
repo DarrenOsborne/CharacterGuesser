@@ -22,9 +22,11 @@ ctx.lineWidth = STROKE_WIDTH;
 
 // State
 let drawing = false;
+let lastPos = null; // track last pointer position for click dots
 let model = null;
 let submitTimer = null;
 let strokeDrawn = false;
+let movedThisStroke = false; // track if there was movement during this stroke
 
 const game = {
   target: '',
@@ -45,18 +47,37 @@ function getPos(e) {
 }
 function startDraw(e) {
   drawing = true;
-  if (submitTimer) { clearTimeout(submitTimer); submitTimer = null; }
+  // Do not cancel the submit timer on mere click; only cancel once movement starts
   strokeDrawn = false;
-  const {x,y} = getPos(e); ctx.beginPath(); ctx.moveTo(x,y);
+  movedThisStroke = false;
+  const {x,y} = getPos(e); lastPos = {x,y}; ctx.beginPath(); ctx.moveTo(x,y);
 }
-function draw(e) { if (!drawing) return; const {x,y}=getPos(e); ctx.lineTo(x,y); ctx.stroke(); strokeDrawn=true; }
-function endDraw() {
+function draw(e) { if (!drawing) return; if (!movedThisStroke){ movedThisStroke=true; if (submitTimer){ clearTimeout(submitTimer); submitTimer=null; } } const {x,y}=getPos(e); lastPos = {x,y}; ctx.lineTo(x,y); ctx.stroke(); strokeDrawn=true; }
+function endDraw(e) {
   if (!drawing) return;
   drawing = false; ctx.closePath();
-  if (!strokeDrawn) return;
+  // If it was just a click (no move), draw a dot at the last position
+  const clickOnly = !movedThisStroke;
+  if (clickOnly && lastPos){
+    ctx.save();
+    ctx.beginPath();
+    ctx.fillStyle = STROKE_COLOR;
+    ctx.arc(lastPos.x, lastPos.y, Math.max(1, STROKE_WIDTH/2), 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+    strokeDrawn = true;
+  }
   if (!hasInk(canvas)) return;
-  if (submitTimer) clearTimeout(submitTimer);
-  submitTimer = setTimeout(() => { if (hasInk(canvas)) predictAndHandle({append:true, clearAfter:true}); submitTimer=null; }, submitDelayMs);
+  if (clickOnly){
+    // Do not interfere with an existing timer; start one only if none exists
+    if (!submitTimer){
+      submitTimer = setTimeout(() => { if (hasInk(canvas)) predictAndHandle({append:true, clearAfter:true}); submitTimer=null; }, submitDelayMs);
+    }
+  } else {
+    // Real stroke: restart the timer
+    if (submitTimer) clearTimeout(submitTimer);
+    submitTimer = setTimeout(() => { if (hasInk(canvas)) predictAndHandle({append:true, clearAfter:true}); submitTimer=null; }, submitDelayMs);
+  }
 }
 
 canvas.addEventListener('mousedown', startDraw);
