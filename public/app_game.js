@@ -73,22 +73,6 @@ canvas.addEventListener('mousedown', startDraw);
 canvas.addEventListener('mousemove', draw);
 canvas.addEventListener('mouseup', endDraw);
 canvas.addEventListener('mouseleave', endDraw);
-// Ensure simple click places a dot (no drag required)
-canvas.addEventListener('click', (e)=>{
-  // If a stroke was drawn in this interaction, skip (drag case)
-  if (drawing) return;
-  if (strokeDrawn) return;
-  const {x,y}=getPos(e);
-  ctx.save();
-  ctx.beginPath();
-  ctx.fillStyle = STROKE_COLOR;
-  ctx.arc(x,y, Math.max(1, STROKE_WIDTH/2), 0, Math.PI*2);
-  ctx.fill();
-  ctx.restore();
-  strokeDrawn = true;
-  if (submitTimer) clearTimeout(submitTimer);
-  submitTimer = setTimeout(()=>{ if(hasInk(canvas)) predictAndHandle({append:true, clearAfter:true}); submitTimer=null; }, submitDelayMs);
-});
 canvas.addEventListener('touchstart', (e)=>{e.preventDefault();startDraw(e);});
 canvas.addEventListener('touchmove', (e)=>{e.preventDefault();draw(e);});
 canvas.addEventListener('touchend', (e)=>{e.preventDefault();endDraw(e);});
